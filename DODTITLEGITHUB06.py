@@ -557,11 +557,11 @@ class GameApp:
 
                 r = random.randint(1, 100)
 
-                if r <= 60:
+                if r <= 70:
                     self.selected_movie = "rea1gumono"
                 elif r <= 80:
                     self.selected_movie = "rea2seigi"
-                elif r <= 90:
+                elif r <= 95:
                     self.selected_movie = "rea3kenjya"
                 else:
                     self.selected_movie = "rea1gumono"
