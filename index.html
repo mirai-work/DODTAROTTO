@@ -1,39 +1,73 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
 <meta charset="utf-8">
+<title>DEMOCRACY OF THE DEAD</title>
 
 <script src="https://cdn.jsdelivr.net/gh/kitao/pyxel/wasm/pyxel.js"></script>
 
 <script>
-function showEndingMovie(name){
+function showEndingMovie(name) {
 
-    const video=document.createElement("video");
+    const oldVideo = document.getElementById("endingMovie");
+    if (oldVideo) {
+        oldVideo.remove();
+    }
 
-    video.src=name + ".mp4";
-    video.autoplay=true;
-    video.controls=false;
-    video.style.position="fixed";
-    video.style.left="0";
-    video.style.top="0";
-    video.style.width="100vw";
-    video.style.height="100vh";
-    video.style.zIndex="9999";
+    const video = document.createElement("video");
+
+    video.id = "endingMovie";
+    video.src = name + ".mp4";
+    video.autoplay = true;
+    video.controls = false;
+    video.muted = false;
+    video.playsInline = true;
+
+    video.style.position = "fixed";
+    video.style.left = "0";
+    video.style.top = "0";
+    video.style.width = "100vw";
+    video.style.height = "100vh";
+    video.style.objectFit = "contain";
+    video.style.background = "black";
+    video.style.zIndex = "9999";
 
     document.body.appendChild(video);
 
-    video.onended=function(){
+    console.log("movie start:", name);
+
+    video.onended = function () {
+
+        console.log("movie ended");
+
         video.remove();
 
-        if(window.pyodide &&
-           window.pyodide.globals.get("app")){
-            window.pyodide.globals
-                  .get("app")
-                  .movie_finished();
+        if (window.pyxel_app) {
+            console.log("return title");
+            window.pyxel_app.movie_finished();
+        }
+    };
+
+    video.onerror = function () {
+        console.error("movie load error:", video.src);
+
+        video.remove();
+
+        if (window.pyxel_app) {
+            window.pyxel_app.movie_finished();
         }
     };
 }
 </script>
+
+<style>
+html, body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    background: black;
+}
+</style>
 
 </head>
 
