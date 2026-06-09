@@ -1,47 +1,54 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="utf-8">
-    <title>DEMOCRACY OF THE DEAD</title>
+<meta charset="utf-8">
 
-    <script src="https://cdn.jsdelivr.net/gh/kitao/pyxel/wasm/pyxel.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/kitao/pyxel/wasm/pyxel.js"></script>
+
+<script>
+function showEndingMovie(filename){
+
+    let video = document.getElementById("endingVideo");
+
+    video.src = filename + ".mp4";
+
+    video.style.display = "block";
+
+    video.play();
+
+    video.onended = function(){
+
+        video.style.display = "none";
+
+        if(window.pyxel_app){
+            window.pyxel_app.movie_finished();
+        }
+    };
+}
+</script>
+
 </head>
 
 <body>
 
-    <video id="endingMovie"
-           style="display:none;
-                  position:fixed;
-                  top:0;
-                  left:0;
-                  width:100vw;
-                  height:100vh;
-                  object-fit:cover;
-                  z-index:9999;">
-    </video>
+<video
+    id="endingVideo"
+    style="
+        display:none;
+        position:fixed;
+        left:0;
+        top:0;
+        width:100%;
+        height:100%;
+        z-index:9999;
+        background:black;
+    "
+></video>
 
-    <pyxel-run name="DODTAROTTO.py" gamepad="enabled"></pyxel-run>
-
-    <script>
-    window.showEndingMovie = function(file) {
-
-        const video = document.getElementById("endingMovie");
-
-        video.src = file;
-        video.style.display = "block";
-
-        video.play();
-
-        video.onended = function() {
-
-            video.style.display = "none";
-
-            if(window.pyxel_app){
-                window.pyxel_app.movie_finished();
-            }
-        };
-    };
-    </script>
+<pyxel-run
+    name="DODTAROTTO.py"
+    gamepad="enabled">
+</pyxel-run>
 
 </body>
 </html>
