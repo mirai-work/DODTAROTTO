@@ -1,2 +1,47 @@
-<script src="https://cdn.jsdelivr.net/gh/kitao/pyxel/wasm/pyxel.js"></script>
-<pyxel-run name="DODTAROTTO.py" gamepad="enabled"></pyxel-run>
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>DEMOCRACY OF THE DEAD</title>
+
+    <script src="https://cdn.jsdelivr.net/gh/kitao/pyxel/wasm/pyxel.js"></script>
+</head>
+
+<body>
+
+    <video id="endingMovie"
+           style="display:none;
+                  position:fixed;
+                  top:0;
+                  left:0;
+                  width:100vw;
+                  height:100vh;
+                  object-fit:cover;
+                  z-index:9999;">
+    </video>
+
+    <pyxel-run name="DODTAROTTO.py" gamepad="enabled"></pyxel-run>
+
+    <script>
+    window.showEndingMovie = function(file) {
+
+        const video = document.getElementById("endingMovie");
+
+        video.src = file;
+        video.style.display = "block";
+
+        video.play();
+
+        video.onended = function() {
+
+            video.style.display = "none";
+
+            if(window.pyxel_app){
+                window.pyxel_app.movie_finished();
+            }
+        };
+    };
+    </script>
+
+</body>
+</html>
