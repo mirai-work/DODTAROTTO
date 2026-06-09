@@ -368,7 +368,7 @@ class GameApp:
         except Exception:
             pass
         try:
-            pyxel.images[1].load(0, 0, "tarotbak.png")
+            pyxel.images[1].load(0, 0, "tarotbak1.png")
         except Exception:
             pass
 
