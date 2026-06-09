@@ -551,15 +551,21 @@ class GameApp:
 
             if self.video_timer == 0:
 
-                self.selected_movie = random.choice(self.card_movies)
+                r = random.randint(1, 100)
+
+                if r <= 60:
+                    self.selected_movie = "rea1gumono"
+                elif r <= 80:
+                    self.selected_movie = "rea2seigi"
+                elif r <= 90:
+                    self.selected_movie = "rea3kenjya"
+                else:
+                    self.selected_movie = "rea1gumono"
 
                 try:
                     import js
 
-                
-                    js.showEndingMovie(
-                      self.selected_movie
-                     )
+                    js.showEndingMovie(self.selected_movie)
 
                 except:
                     pass
