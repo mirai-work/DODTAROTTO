@@ -918,3 +918,8 @@ class GameApp:
 
 app = GameApp()
 
+try:
+    import js
+    js.window.pyxel_app = app
+except Exception as e:
+    print(e)
