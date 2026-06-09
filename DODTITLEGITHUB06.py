@@ -367,6 +367,10 @@ class GameApp:
             pyxel.images[0].load(0, 0, "dodtitle.png")
         except Exception:
             pass
+        try:
+            pyxel.images[1].load(0, 0, "tarotbak.png")
+        except Exception:
+            pass
 
         self.card_movies = [
             "rea1gumono",
@@ -879,7 +883,7 @@ class GameApp:
             curr_y += height
 
         if self.show_final_score:
-
+            pyxel.blt(0, 0, 1, 0, 0, WINDOW_W, WINDOW_H)
             # 点滅色
             blink1 = 10 if pyxel.frame_count % 30 < 15 else 8
             blink2 = 7 if pyxel.frame_count % 30 < 15 else 13
