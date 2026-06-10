@@ -61,7 +61,7 @@ CREDITS_CONTENT = [
     (8, "", 0),
     (12, "SPECIAL THANKS TO:", 11),
     (12, "Team T.d", 7),
-    (12, "All Players", 7),
+    (12, "Former Mirai Work user", 7),
     (8, "", 0),
     (12, "TEST PLAYERS", 11),
     (12, "Team T.d", 7),
