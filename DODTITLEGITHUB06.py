@@ -555,28 +555,28 @@ class GameApp:
 
             if self.video_timer == 0:
 
-                r = random.randint(1, 100)
-
-                if r <= 70:
-                    self.selected_movie = "rea1gumono"
-                elif r <= 80:
-                    self.selected_movie = "rea2seigi"
-                elif r <= 95:
-                    self.selected_movie = "rea3kenjya"
-                else:
-                    self.selected_movie = "rea1gumono"
+                self.selected_movie = random.choices(
+                    ["rea1gumono", "rea2seigi", "rea3kenjya"],
+                    weights=[80, 15, 5]
+                )[0]
 
                 try:
                     import js
-
                     js.showEndingMovie(self.selected_movie)
 
-                except:
-                    pass
+                except Exception as e:
+                    print(e)
+                    self.return_to_title_fallback()
 
                 self.video_timer = 1
 
+            self.video_timer += 1
+
+            if self.video_timer > 600:
+                self.return_to_title_fallback()
+
             return
+
         # 通常のゲームオブジェクト更新
         for p in self.players:
             can_control = self.state == "PLAYING" and not self.time_up_zombified
