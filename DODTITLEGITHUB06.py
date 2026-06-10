@@ -572,7 +572,7 @@ class GameApp:
 
             self.video_timer += 1
 
-            if self.video_timer > 600:
+            if self.video_timer > 900:
                 self.return_to_title_fallback()
 
             return
