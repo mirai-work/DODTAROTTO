@@ -86,8 +86,12 @@ class Player:
         self.temp_color = None
         self.dust_particles = []
         self.transform_particles = []
-        if is_main:
-            self.trail = [(x, y)] * TRAIL_MAX_LENGTH
+        
+        match is_main:
+            case True:
+                self.trail = [(x, y)] * TRAIL_MAX_LENGTH
+            case False:
+                pass
 
     def update(self, obstacles, controllable=True):
         for p in self.transform_particles:
@@ -97,46 +101,59 @@ class Player:
             p[3] += 0.05
         self.transform_particles = [p for p in self.transform_particles if p[5] > 0]
 
-        if not self.is_main:
-            return
+        match self.is_main:
+            case False:
+                return
 
         dx, dy = 0, 0
-        if controllable and not self.is_zombified:
-            sp = PLAYER_SPEED
-            if pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(GAMEPAD_DPAD_LEFT):
-                dx = -sp
-            elif pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(GAMEPAD_DPAD_RIGHT):
-                dx = sp
+        
+        match (controllable, self.is_zombified):
+            case (True, False):
+                sp = PLAYER_SPEED
+                left = pyxel.btn(pyxel.KEY_LEFT) or pyxel.btn(GAMEPAD_DPAD_LEFT)
+                right = pyxel.btn(pyxel.KEY_RIGHT) or pyxel.btn(GAMEPAD_DPAD_RIGHT)
+                up = pyxel.btn(pyxel.KEY_UP) or pyxel.btn(GAMEPAD_DPAD_UP)
+                down = pyxel.btn(pyxel.KEY_DOWN) or pyxel.btn(GAMEPAD_DPAD_DOWN)
 
-            if pyxel.btn(pyxel.KEY_UP) or pyxel.btn(GAMEPAD_DPAD_UP):
-                dy = -sp
-            elif pyxel.btn(pyxel.KEY_DOWN) or pyxel.btn(GAMEPAD_DPAD_DOWN):
-                dy = sp
+                # 入力をタプルでマッチング（キーの同時押しも考慮）
+                match (left, right):
+                    case (True, False): dx = -sp
+                    case (False, True): dx = sp
+                
+                match (up, down):
+                    case (True, False): dy = -sp
+                    case (False, True): dy = sp
 
-            if dx != 0 and dy != 0:
-                diag_factor = 1.0 / math.sqrt(2)
-                dx *= diag_factor
-                dy *= diag_factor
+                match (dx != 0, dy != 0):
+                    case (True, True):
+                        diag_factor = 1.0 / math.sqrt(2)
+                        dx *= diag_factor
+                        dy *= diag_factor
+                    case _:
+                        pass
 
-        moved = (dx != 0 or dy != 0)
-        if moved:
-            self.walk_frame = (self.walk_frame + 1) % 16
-            self.x += dx
-            self.y += dy
+        match (dx != 0 or dy != 0):
+            case True:
+                self.walk_frame = (self.walk_frame + 1) % 16
+                self.x += dx
+                self.y += dy
 
-            if pyxel.frame_count % 3 == 0:
-                self.dust_particles.append([self.x + random.randint(-2, 2), self.y + random.randint(2, 4),
-                                             random.uniform(-0.5, 0.5), random.uniform(-0.5, 0), 6, 15])
+                match pyxel.frame_count % 3:
+                    case 0:
+                        self.dust_particles.append([self.x + random.randint(-2, 2), self.y + random.randint(2, 4),
+                                                     random.uniform(-0.5, 0.5), random.uniform(-0.5, 0), 6, 15])
 
-            if dx > 0: self.dir = 1
-            elif dx < 0: self.dir = -1
+                match dx:
+                    case _ if dx > 0: self.dir = 1
+                    case _ if dx < 0: self.dir = -1
 
         self.x = clamp(self.x, PLAYER_R, WINDOW_W - 1 - PLAYER_R)
         self.y = clamp(self.y, UI_HEIGHT + PLAYER_R, WINDOW_H - 1 - PLAYER_R)
 
-        if self.is_main and not self.is_zombified:
-            self.trail.insert(0, (self.x, self.y))
-            self.trail = self.trail[:TRAIL_MAX_LENGTH]
+        match (self.is_main, self.is_zombified):
+            case (True, False):
+                self.trail.insert(0, (self.x, self.y))
+                self.trail = self.trail[:TRAIL_MAX_LENGTH]
 
         for p in self.dust_particles:
             p[0] += p[2]
@@ -166,14 +183,15 @@ class Player:
         pyxel.circ(x, y + 3, 4, 0)
         pyxel.circ(x, y + 3, 3, 1)
 
-        if self.is_zombified:
-            z_c = 3
-            pyxel.rect(x - 3, y - 3, 6, 6, z_c)
-            pyxel.rect(x - 2, y - 2, 4, 4, z_c + 1)
-            pyxel.circ(x, y - 5, 2, z_c)
-            pyxel.pset(x + self.dir, y - 5, 8)
-            pyxel.pset(x - self.dir, y - 5, 8)
-            return
+        match self.is_zombified:
+            case True:
+                z_c = 3
+                pyxel.rect(x - 3, y - 3, 6, 6, z_c)
+                pyxel.rect(x - 2, y - 2, 4, 4, z_c + 1)
+                pyxel.circ(x, y - 5, 2, z_c)
+                pyxel.pset(x + self.dir, y - 5, 8)
+                pyxel.pset(x - self.dir, y - 5, 8)
+                return
 
         pyxel.rect(x - 3, y - 3, 6, 6, c)
         pyxel.rect(x - 2, y - 2, 4, 4, c - 1)
@@ -187,17 +205,23 @@ class Player:
         pyxel.pset(x - 1, y - 7, 7)
 
         eye_offset = 0
-        if pyxel.frame_count % 120 < 5:
-            eye_offset = 1
+        match pyxel.frame_count % 120:
+            case f if f < 5:
+                eye_offset = 1
         pyxel.line(x + self.dir * 1, y - 6 - eye_offset, x + self.dir * 1, y - 6 + eye_offset, 0)
 
         hair_offset = 0
-        if pyxel.frame_count % 16 < 8:
-            hair_offset = 1
+        match pyxel.frame_count % 16:
+            case f if f < 8:
+                hair_offset = 1
 
-        hair_color = 5
-        if c == 7: hair_color = 12
-        elif c == 8: hair_color = 6
+        match c:
+            case 7:
+                hair_color = 12
+            case 8:
+                hair_color = 6
+            case _:
+                hair_color = 5
 
         pyxel.pset(x - 2 * self.dir, y - 7 - hair_offset, hair_color)
 
@@ -217,77 +241,93 @@ class Zombie:
         px, py = player.x, player.y
         d = dist(self.x, self.y, px, py)
 
-        if self.state == "captured":
-            try:
-                index = captured_zombies.index(self)
-            except ValueError:
-                index = 0
-            target_index = min(len(player.trail) - 1, (index + 1) * FOLLOW_DISTANCE)
-            target_pos = player.trail[target_index]
-            tx, ty = target_pos
+        match self.state:
+            case "captured":
+                try:
+                    index = captured_zombies.index(self)
+                except ValueError:
+                    index = 0
+                target_index = min(len(player.trail) - 1, (index + 1) * FOLLOW_DISTANCE)
+                target_pos = player.trail[target_index]
+                tx, ty = target_pos
 
-            td = dist(self.x, self.y, tx, ty)
-            sp = 1.0 * self.speed_factor
+                td = dist(self.x, self.y, tx, ty)
+                sp = 1.0 * self.speed_factor
 
-            if td > 1.0:
-                self.vx = (tx - self.x) / td * sp
-                self.vy = (ty - self.y) / td * sp
-            else:
+                match td:
+                    case _ if td > 1.0:
+                        self.vx = (tx - self.x) / td * sp
+                        self.vy = (ty - self.y) / td * sp
+                    case _:
+                        self.vx, self.vy = 0, 0
+
+                self.x += self.vx
+                self.y += self.vy
+
+                match abs(self.vx):
+                    case _ if abs(self.vx) > 0.1:
+                        self.dir = 1 if self.vx > 0 else -1
+
+                for p in self.captured_particles:
+                    p[0] += p[2]
+                    p[1] += p[3]
+                    p[5] -= 1
+                self.captured_particles = [p for p in self.captured_particles if p[5] > 0]
+
+                self.x = clamp(self.x, ZOMBIE_R, WINDOW_W - 1 - ZOMBIE_R)
+                self.y = clamp(self.y, UI_HEIGHT + ZOMBIE_R, WINDOW_H - 1 - ZOMBIE_R)
+                return
+
+            case _ if d < PLAYER_R + ZOMBIE_R and not player.is_zombified:
+                self.state = "captured"
                 self.vx, self.vy = 0, 0
+                pyxel.play(3, 8)
+                for _ in range(random.randint(5, 10)):
+                    self.captured_particles.append([self.x, self.y, random.uniform(-1, 1), random.uniform(-1, -0.5), random.choice([7, 8, 3]), 30])
+                return
 
-            self.x += self.vx
-            self.y += self.vy
-
-            if abs(self.vx) > 0.1:
-                self.dir = 1 if self.vx > 0 else -1
-
-            for p in self.captured_particles:
-                p[0] += p[2]
-                p[1] += p[3]
-                p[5] -= 1
-            self.captured_particles = [p for p in self.captured_particles if p[5] > 0]
-
-            self.x = clamp(self.x, ZOMBIE_R, WINDOW_W - 1 - ZOMBIE_R)
-            self.y = clamp(self.y, UI_HEIGHT + ZOMBIE_R, WINDOW_H - 1 - ZOMBIE_R)
-            return
-
-        if d < PLAYER_R + ZOMBIE_R and self.state != "captured" and not player.is_zombified:
-            self.state = "captured"
-            self.vx, self.vy = 0, 0
-            pyxel.play(3, 8)
-            for _ in range(random.randint(5, 10)):
-                self.captured_particles.append([self.x, self.y, random.uniform(-1, 1), random.uniform(-1, -0.5), random.choice([7, 8, 3]), 30])
-            return
-
-        if not player.is_zombified:
-            if d < 45:
-                self.state = "follow"
-                if d != 0:
-                    self.vx += (px - self.x) / d * 0.1
-                    self.vy += (py - self.y) / d * 0.1
-            else:
-                self.state = "wander"
-                if random.random() < 0.02:
-                    self.vx = random.uniform(-0.5, 0.5)
-                    self.vy = random.uniform(-0.5, 0.5)
+            case _:
+                match player.is_zombified:
+                    case False:
+                        match d:
+                            case _ if d < 45:
+                                self.state = "follow"
+                                match d:
+                                    case _ if d != 0:
+                                        self.vx += (px - self.x) / d * 0.1
+                                        self.vy += (py - self.y) / d * 0.1
+                            case _:
+                                self.state = "wander"
+                                match random.random():
+                                    case r if r < 0.02:
+                                        self.vx = random.uniform(-0.5, 0.5)
+                                        self.vy = random.uniform(-0.5, 0.5)
 
         v_len = dist(0, 0, self.vx, self.vy)
         max_v = 1.0 * self.speed_factor
-        if v_len > max_v and v_len != 0:
-            self.vx *= max_v / v_len
-            self.vy *= max_v / v_len
+        
+        match (v_len > max_v, v_len != 0):
+            case (True, True):
+                self.vx *= max_v / v_len
+                self.vy *= max_v / v_len
 
         nx = self.x + self.vx
         ny = self.y + self.vy
 
         sanctuary_boundary = WINDOW_W - SANCTUARY_W
-        if nx > sanctuary_boundary - ZOMBIE_R:
-            if self.x <= sanctuary_boundary - ZOMBIE_R:
-                self.vx = 0
-            nx = self.x
+        
+        match nx:
+            case _ if nx > sanctuary_boundary - ZOMBIE_R:
+                match self.x:
+                    case _ if self.x <= sanctuary_boundary - ZOMBIE_R:
+                        self.vx = 0
+                nx = self.x
 
         self.x, self.y = nx, ny
-        self.dir = 1 if self.vx > 0 else (-1 if self.vx < 0 else self.dir)
+        
+        match self.vx:
+            case _ if self.vx > 0: self.dir = 1
+            case _ if self.vx < 0: self.dir = -1
 
         self.x = clamp(self.x, ZOMBIE_R, WINDOW_W - 1 - ZOMBIE_R)
         self.y = clamp(self.y, UI_HEIGHT + ZOMBIE_R, WINDOW_H - 1 - ZOMBIE_R)
@@ -300,15 +340,20 @@ class Zombie:
         pyxel.circ(x, y + 3, 4, 0)
         pyxel.circ(x, y + 3, 3, 1)
 
-        c = 7 if self.state == "captured" else self.base_color
+        match self.state:
+            case "captured": c = 7
+            case _: c = self.base_color
+
         pyxel.rect(x - 3, y - 3, 6, 6, c)
         pyxel.rect(x - 2, y - 2, 4, 4, c + 1)
         pyxel.pset(x + random.randint(-2, 2), y + random.randint(-2, 2), 8)
 
         pyxel.circ(x, y - 5, 2, c)
         pyxel.pset(x + self.dir, y - 5, 8)
-        if pyxel.frame_count % 30 < 15:
-            pyxel.pset(x - self.dir, y - 5, 8)
+        
+        match pyxel.frame_count % 30:
+            case f if f < 15:
+                pyxel.pset(x - self.dir, y - 5, 8)
 
 
 class Fade:
@@ -320,21 +365,30 @@ class Fade:
 
     def to(self, target, speed=None):
         self.target = clamp(target, 0.0, 1.0)
-        if speed is not None: self.speed = speed
+        match speed:
+            case float() | int():
+                self.speed = speed
         self.active = True
 
     def update(self):
-        if not self.active: return
-        if self.alpha < self.target:
-            self.alpha = clamp(self.alpha + self.speed, 0.0, 1.0)
-        elif self.alpha > self.target:
-            self.alpha = clamp(self.alpha - self.speed, 0.0, 1.0)
-        if abs(self.alpha - self.target) < 0.01:
-            self.alpha = self.target
-            self.active = False
+        match self.active:
+            case False: return
+            
+        match self.alpha:
+            case a if a < self.target:
+                self.alpha = clamp(self.alpha + self.speed, 0.0, 1.0)
+            case a if a > self.target:
+                self.alpha = clamp(self.alpha - self.speed, 0.0, 1.0)
+
+        match abs(self.alpha - self.target):
+            case d if d < 0.01:
+                self.alpha = self.target
+                self.active = False
 
     def draw(self):
-        if self.alpha <= 0.01: return
+        match self.alpha:
+            case a if a <= 0.01: return
+            
         layers = int(self.alpha * 8) + 1
         for _ in range(layers):
             pyxel.rect(0, 0, WINDOW_W, WINDOW_H, 0)
@@ -350,12 +404,14 @@ class Shake:
         self.intensity = intensity
 
     def update(self):
-        if self.timer > 0: self.timer -= 1
+        match self.timer:
+            case t if t > 0: self.timer -= 1
 
     def get_offset(self):
-        if self.timer <= 0: return 0, 0
-        return (random.randint(-self.intensity, self.intensity),
-                random.randint(-self.intensity, self.intensity))
+        match self.timer:
+            case t if t <= 0: return 0, 0
+            case _: return (random.randint(-self.intensity, self.intensity),
+                            random.randint(-self.intensity, self.intensity))
 
 
 class GameApp:
@@ -447,43 +503,55 @@ class GameApp:
     def movie_finished(self):
         self.return_to_title_fallback()
    
-    
     def start_march(self):
         self.marching = True
         for p in self.players:
             p.walk_frame = 0
 
     def update_march(self):
-        if not self.marching: return
+        match self.marching:
+            case False: return
+            
         tx = WINDOW_W - SANCTUARY_W + 2
         march_speed = PLAYER_SPEED * 1.5
         for e in [self.player] + self.captured_zombies:
-            if e.x < tx:
-                e.x += min(march_speed, tx - e.x)
-                if isinstance(e, Player):
-                    e.walk_frame = (e.walk_frame + 1) % 16
-                e.dir = 1
-            if isinstance(e, Player) and e.is_main:
-                e.trail = [(e.x, e.y)] * TRAIL_MAX_LENGTH
+            match e.x:
+                case _ if e.x < tx:
+                    e.x += min(march_speed, tx - e.x)
+                    match e:
+                        case Player(): e.walk_frame = (e.walk_frame + 1) % 16
+                    e.dir = 1
+            
+            match e:
+                case Player() if e.is_main:
+                    e.trail = [(e.x, e.y)] * TRAIL_MAX_LENGTH
 
     def play_music_safe(self, mode):
         pyxel.stop()
-        if mode == "TITLE": pyxel.playm(2, loop=True)
-        elif mode == "PLAYING": pyxel.playm(0, loop=True)
-        elif mode == "ENDING_CREDITS": pyxel.playm(1, loop=True)
+        match mode:
+            case "TITLE":
+                pyxel.playm(2, loop=True)
+            case "PLAYING":
+                pyxel.playm(0, loop=True)
+            case "ENDING_CREDITS":
+                pyxel.playm(1, loop=True)
+            case "STOP":
+                pass
 
     def spawn_stage(self):
         self.stage += 1
-        if self.stage > MAX_STAGE_PLAY + 1:
-            self.stage = 1
-
-        if self.stage == 0:
-            self.stage = 1
-            self.stage_time_limit = self.time_remaining_next_stage
-        elif self.stage <= MAX_STAGE_PLAY:
-            self.stage_time_limit = self.time_remaining_next_stage
-        elif self.stage == MAX_STAGE_PLAY + 1:
-            self.stage_time_limit = max(FINAL_STAGE_TIME_LIMIT_MIN, self.time_remaining_next_stage)
+        
+        match self.stage:
+            case s if s > MAX_STAGE_PLAY + 1:
+                self.stage = 1
+                self.stage_time_limit = self.time_remaining_next_stage
+            case 0:
+                self.stage = 1
+                self.stage_time_limit = self.time_remaining_next_stage
+            case s if s <= MAX_STAGE_PLAY:
+                self.stage_time_limit = self.time_remaining_next_stage
+            case s if s == MAX_STAGE_PLAY + 1:
+                self.stage_time_limit = max(FINAL_STAGE_TIME_LIMIT_MIN, self.time_remaining_next_stage)
 
         self.time_up_zombified = False
         self.time_up_frame = 0
@@ -495,18 +563,19 @@ class GameApp:
         self.player = Player(spawn_x, spawn_y, is_main=True)
         self.players.append(self.player)
 
-        if self.stage == MAX_STAGE_PLAY + 1:
-            sanctuary_pos_x = WINDOW_W - SANCTUARY_W + 8
-            self.dummy_players = [
-                Player(sanctuary_pos_x, WINDOW_H // 2 - 20, is_main=False, color_override=11),
-                Player(sanctuary_pos_x + 5, WINDOW_H // 2, is_main=False, color_override=7),
-                Player(sanctuary_pos_x, WINDOW_H // 2 + 20, is_main=False, color_override=8)
-            ]
-            self.players.extend(self.dummy_players)
-            zombie_count = FINAL_STAGE_ZOMBIES
-        else:
-            self.dummy_players = []
-            zombie_count = ZOMBIE_COUNT_BASE + (self.stage - 1) * 2
+        match self.stage:
+            case s if s == MAX_STAGE_PLAY + 1:
+                sanctuary_pos_x = WINDOW_W - SANCTUARY_W + 8
+                self.dummy_players = [
+                    Player(sanctuary_pos_x, WINDOW_H // 2 - 20, is_main=False, color_override=11),
+                    Player(sanctuary_pos_x + 5, WINDOW_H // 2, is_main=False, color_override=7),
+                    Player(sanctuary_pos_x, WINDOW_H // 2 + 20, is_main=False, color_override=8)
+                ]
+                self.players.extend(self.dummy_players)
+                zombie_count = FINAL_STAGE_ZOMBIES
+            case _:
+                self.dummy_players = []
+                zombie_count = ZOMBIE_COUNT_BASE + (self.stage - 1) * 2
 
         self.zombies = []
         self.captured_zombies = []
@@ -517,8 +586,9 @@ class GameApp:
             sf = random.choice([0.8, 1.0, 1.3])
             self.zombies.append(Zombie(zx, zy, speed_factor=sf, global_speed_multiplier=self.zombie_speed_multiplier))
 
-        if self.start_time_total == 0.0:
-            self.start_time_total = pyxel.frame_count / 60.0
+        match self.start_time_total:
+            case 0.0:
+                self.start_time_total = pyxel.frame_count / 60.0
 
         self.stage_start_frame = pyxel.frame_count
         self.state = "PLAYING"
@@ -551,205 +621,240 @@ class GameApp:
         self.fade.update()
         self.shake.update()
 
-        if self.state == "SENTAKUTAP":
+        match self.state:
+            case s if s != "SENTAKUTAP":
+                for p in self.players:
+                    can_control = self.state == "PLAYING" and not self.time_up_zombified
+                    p.update(self.obstacles, controllable=can_control)
 
-            if self.video_timer == 0:
-
-                self.selected_movie = random.choices(
-                    ["rea1gumono", "rea2seigi", "rea3kenjya"],
-                    weights=[80, 15, 5]
-                )[0]
-
-                try:
-                    import js
-                    js.showEndingMovie(self.selected_movie)
-
-                except Exception as e:
-                    print(e)
-                    self.return_to_title_fallback()
-
-                self.video_timer = 1
-
-            self.video_timer += 1
-
-            if self.video_timer > 900:
-                self.return_to_title_fallback()
-
-            return
-
-        # 通常のゲームオブジェクト更新
-        for p in self.players:
-            can_control = self.state == "PLAYING" and not self.time_up_zombified
-            p.update(self.obstacles, controllable=can_control)
-
-        for z in self.zombies:
-            z.update(self.player, self.obstacles, self.captured_zombies)
+                for z in self.zombies:
+                    z.update(self.player, self.obstacles, self.captured_zombies)
 
         is_enter_pressed = pyxel.btnp(pyxel.KEY_RETURN) or \
                            pyxel.btnp(GAMEPAD_A_ID) or \
                            pyxel.btnp(GAMEPAD_START_ID)
 
-        if self.state == "TITLE":
-            if is_enter_pressed:
-                pyxel.play(3, 11)
-                self.fade.to(1.0, speed=0.06)
-                self.next_state_called = True
+        match self.state:
+            case "SENTAKUTAP":
+                match self.video_timer:
+                    case 0:
+                        self.selected_movie = random.choices(
+                            ["rea1gumono", "rea2seigi", "rea3kenjya"],
+                            weights=[80, 15, 5]
+                        )[0]
 
-            if self.next_state_called and not self.fade.active and self.fade.alpha >= 0.99:
-                self.next_state_called = False
-                self.state = "TUTORIAL"
-                self.fade.to(0.0, speed=0.06)
+                        try:
+                            import js
+                            js.showEndingMovie(self.selected_movie)
+                        except Exception as e:
+                            print(e)
+                            self.return_to_title_fallback()
 
-        elif self.state == "TUTORIAL":
-            if is_enter_pressed:
-                pyxel.play(3, 11)
-                self.fade.to(1.0, speed=0.06)
-                self.next_state_called = True
+                        self.video_timer = 1
 
-            if self.next_state_called and not self.fade.active and self.fade.alpha >= 0.99:
-                self.next_state_called = False
-                self.stage = 0
-                self.time_remaining_next_stage = BASE_TIME_LIMIT
-                self.start_time_total = 0.0
-                self.spawn_stage()
+                self.video_timer += 1
 
-        elif self.state == "PLAYING":
-            newly_captured = [z for z in self.zombies if z.state == "captured" and z not in self.captured_zombies]
-            for z in newly_captured:
-                self.captured_zombies.append(z)
-                self.shake.start(frames=4, intensity=1)
+                match self.video_timer:
+                    case t if t > 900:
+                        self.return_to_title_fallback()
+                return
 
-            elapsed = (pyxel.frame_count - self.stage_start_frame) / 60.0
-            time_left = max(0.0, self.stage_time_limit - elapsed)
+            case "TITLE":
+                match is_enter_pressed:
+                    case True:
+                        pyxel.play(3, 11)
+                        self.fade.to(1.0, speed=0.06)
+                        self.next_state_called = True
 
-            if time_left < 10.0 and not self.time_up_warning_played and time_left > 0:
-                pyxel.play(3, 7, loop=True)
-                self.time_up_warning_played = True
+                # 複数フラグの同時チェック
+                match (self.next_state_called, self.fade.active, self.fade.alpha >= 0.99):
+                    case (True, False, True):
+                        self.next_state_called = False
+                        self.state = "TUTORIAL"
+                        self.fade.to(0.0, speed=0.06)
 
-            if time_left <= 0.0 and not self.time_up_zombified:
-                self.time_up_zombified = True
-                self.player.is_zombified = True
-                self.time_up_frame = pyxel.frame_count
-                pyxel.stop()
-                pyxel.play(3, 10)
-                self.play_music_safe("STOP")
+            case "TUTORIAL":
+                match is_enter_pressed:
+                    case True:
+                        pyxel.play(3, 11)
+                        self.fade.to(1.0, speed=0.06)
+                        self.next_state_called = True
 
-            if self.time_up_zombified:
-                if pyxel.frame_count - self.time_up_frame > GAMEOVER_HOLD_TIME:
-                    self.fade.to(1.0, speed=0.06)
-                    self.next_state_called = True
+                match (self.next_state_called, self.fade.active, self.fade.alpha >= 0.99):
+                    case (True, False, True):
+                        self.next_state_called = False
+                        self.stage = 0
+                        self.time_remaining_next_stage = BASE_TIME_LIMIT
+                        self.start_time_total = 0.0
+                        self.spawn_stage()
 
-            if self.next_state_called and self.fade.alpha >= 0.99:
-                self.next_state_called = False
-                self.return_to_title_fallback()
+            case "PLAYING":
+                newly_captured = [z for z in self.zombies if z.state == "captured" and z not in self.captured_zombies]
+                for z in newly_captured:
+                    self.captured_zombies.append(z)
+                    self.shake.start(frames=4, intensity=1)
 
-            if len(self.captured_zombies) == len(self.zombies) and len(self.zombies) > 0:
-                self.time_remaining_next_stage = time_left
-                self.state = "GO_TO_SANCT"
-                self.start_march()
-                self.play_music_safe("STOP")
-                pyxel.play(3, 9)
+                elapsed = (pyxel.frame_count - self.stage_start_frame) / 60.0
+                time_left = max(0.0, self.stage_time_limit - elapsed)
 
-        elif self.state == "GO_TO_SANCT":
-            self.update_march()
-            sanctuary_x_min = WINDOW_W - SANCTUARY_W
-            all_in_sanctuary = all(p.x >= sanctuary_x_min for p in self.players if p.is_main) and \
-                               all(z.x >= sanctuary_x_min for z in self.captured_zombies)
+                match time_left:
+                    case t if 0 < t < 10.0 and not self.time_up_warning_played:
+                        pyxel.play(3, 7, loop=True)
+                        self.time_up_warning_played = True
+                    case t if t <= 0.0 and not self.time_up_zombified:
+                        self.time_up_zombified = True
+                        self.player.is_zombified = True
+                        self.time_up_frame = pyxel.frame_count
+                        pyxel.stop()
+                        pyxel.play(3, 10)
+                        self.play_music_safe("STOP")
 
-            if all_in_sanctuary and not self.fade_outting:
-                self.marching = False
-                self.fade.to(1.0, speed=0.01)
-                self.fade_outting = True
+                match self.time_up_zombified:
+                    case True if pyxel.frame_count - self.time_up_frame > GAMEOVER_HOLD_TIME:
+                        self.fade.to(1.0, speed=0.06)
+                        self.next_state_called = True
+                    case _:
+                        pass
 
-            if self.fade_outting and not self.fade.active and self.fade.alpha >= 0.99:
-                self.fade_outting = False
-                if self.stage == MAX_STAGE_PLAY + 1:
-                    self.start_ending()
-                else:
-                    self.spawn_stage()
+                match (self.next_state_called, self.fade.alpha >= 0.99):
+                    case (True, True):
+                        self.next_state_called = False
+                        self.return_to_title_fallback()
+                    case _:
+                        pass
 
-        elif self.state == "ENDING":
-            if self.ending_timer == 0:
-                self.fade.to(0.0, speed=0.08)
-                self.play_music_safe("ENDING_CREDITS")
+                match (len(self.captured_zombies) == len(self.zombies), len(self.zombies) > 0):
+                    case (True, True):
+                        self.time_remaining_next_stage = time_left
+                        self.state = "GO_TO_SANCT"
+                        self.start_march()
+                        self.play_music_safe("STOP")
+                        pyxel.play(3, 9)
 
-            self.ending_timer += 1
-            for p in self.dummy_players:
-                p.update(self.obstacles, controllable=False)
+            case "GO_TO_SANCT":
+                self.update_march()
+                sanctuary_x_min = WINDOW_W - SANCTUARY_W
+                all_in_sanctuary = all(p.x >= sanctuary_x_min for p in self.players if p.is_main) and \
+                                   all(z.x >= sanctuary_x_min for z in self.captured_zombies)
 
-            if self.ending_timer < TRANSFORM_DURATION:
-                if self.ending_timer % 30 == 0: pyxel.play(3, 12)
-                if self.ending_timer % 5 < 3: self.shake.start(frames=3, intensity=3)
+                match (all_in_sanctuary, self.fade_outting):
+                    case (True, False):
+                        self.marching = False
+                        self.fade.to(1.0, speed=0.01)
+                        self.fade_outting = True
 
-                is_flashing = (self.ending_timer % 4 < 2)
+                match (self.fade_outting, self.fade.active, self.fade.alpha >= 0.99):
+                    case (True, False, True):
+                        self.fade_outting = False
+                        match self.stage:
+                            case s if s == MAX_STAGE_PLAY + 1:
+                                self.start_ending()
+                            case _:
+                                self.spawn_stage()
+
+            case "ENDING":
+                match self.ending_timer:
+                    case 0:
+                        self.fade.to(0.0, speed=0.08)
+                        self.play_music_safe("ENDING_CREDITS")
+
+                self.ending_timer += 1
                 for p in self.dummy_players:
-                    p.temp_color = random.choice([8, 13, 3]) if is_flashing else p.color
+                    p.update(self.obstacles, controllable=False)
 
-                if self.ending_timer % 10 == 0:
-                    for p in self.dummy_players:
-                        if random.random() < 0.8: p.spawn_transform_particle(random.choice([8, 3]))
+                match self.ending_timer:
+                    case t if t < TRANSFORM_DURATION:
+                        match self.ending_timer % 30:
+                            case 0: pyxel.play(3, 12)
+                        
+                        match self.ending_timer % 5:
+                            case f if f < 3: self.shake.start(frames=3, intensity=3)
 
-            if self.ending_timer == TRANSFORM_DURATION:
-                self.shake.start(frames=20, intensity=5)
-                pyxel.play(3, 10)
-                for p in self.dummy_players:
-                    p.is_zombified = True
-                    p.temp_color = None
-                    for _ in range(20): p.spawn_transform_particle(random.choice([8, 3, 1]))
+                        is_flashing = (self.ending_timer % 4 < 2)
+                        for p in self.dummy_players:
+                            match is_flashing:
+                                case True: p.temp_color = random.choice([8, 13, 3])
+                                case False: p.temp_color = p.color
 
-            if self.ending_timer > TRANSFORM_DURATION + 90:
-                self.state = "CREDITS_ROLL"
-                self.credits_y = WINDOW_H
-                self.fade.to(0.0, speed=0.015)
+                        match self.ending_timer % 10:
+                            case 0:
+                                for p in self.dummy_players:
+                                    match random.random():
+                                        case r if r < 0.8:
+                                            p.spawn_transform_particle(random.choice([8, 3]))
 
-        elif self.state == "CREDITS_ROLL":
-            self.credits_y -= CREDITS_SPEED
-            if self.credits_y < -(self.credits_duration) + 10:
-                self.show_final_score = True
+                    case t if t == TRANSFORM_DURATION:
+                        self.shake.start(frames=20, intensity=5)
+                        pyxel.play(3, 10)
+                        for p in self.dummy_players:
+                            p.is_zombified = True
+                            p.temp_color = None
+                            for _ in range(20): p.spawn_transform_particle(random.choice([8, 3, 1]))
 
-            if self.credits_y < -(self.credits_duration) - 90:
-                self.fade.to(1.0, speed=0.015)
+                    case t if t > TRANSFORM_DURATION + 90:
+                        self.state = "CREDITS_ROLL"
+                        self.credits_y = WINDOW_H
+                        self.fade.to(0.0, speed=0.015)
 
-            if self.fade.alpha >= 0.99:
-                pyxel.stop()
-                self.sentakutap_played = False
-                self.card_clicked = False
-                self.video_timer = 0
-                self.state = "SENTAKUTAP"
+            case "CREDITS_ROLL":
+                self.credits_y -= CREDITS_SPEED
+                
+                match self.credits_y:
+                    case y if y < -(self.credits_duration) + 10:
+                        self.show_final_score = True
+
+                match self.credits_y:
+                    case y if y < -(self.credits_duration) - 90:
+                        self.fade.to(1.0, speed=0.015)
+
+                match self.fade.alpha:
+                    case a if a >= 0.99:
+                        pyxel.stop()
+                        self.sentakutap_played = False
+                        self.card_clicked = False
+                        self.video_timer = 0
+                        self.state = "SENTAKUTAP"
 
     def draw(self):
         ox, oy = self.shake.get_offset()
         pyxel.cls(1) 
-        if self.state == "SENTAKUTAP":
-             pyxel.cls(0)
-             pyxel.text(center_text_x("PLAYING MOVIE..."), 55, "PLAYING MOVIE...", 8)
-             self.fade.draw()
-             return
-        if self.state == "TITLE":
-            self.draw_title()
-        elif self.state == "TUTORIAL":
-            self.draw_tutorial()
-        elif self.state in ("PLAYING", "GO_TO_SANCT"):
-            pyxel.clip(0, UI_HEIGHT, WINDOW_W, WINDOW_H - UI_HEIGHT)
-            pyxel.camera(ox, oy)
-            self.draw_playing()
-            pyxel.camera(0, 0)
-            pyxel.clip()
-            self.draw_ui()
 
-            if self.time_up_zombified:
-                s1 = "TIME UP!"
-                s2 = "GAME OVER"
-                pyxel.text(center_text_x(s1), WINDOW_H // 2 - 8, s1, 8)
-                pyxel.text(center_text_x(s2), WINDOW_H // 2 + 8, s2, 7)
+        match self.state:
+            case "SENTAKUTAP":
+                pyxel.cls(0)
+                pyxel.text(center_text_x("PLAYING MOVIE..."), 55, "PLAYING MOVIE...", 8)
+                self.fade.draw()
+                return
 
-        elif self.state == "ENDING":
-            pyxel.camera(0, 0)
-            self.draw_ending_scene()
-        elif self.state == "CREDITS_ROLL":
-            pyxel.cls(0)
-            pyxel.camera(0, 0)
-            self.draw_credits_roll()
+            case "TITLE":
+                self.draw_title()
+
+            case "TUTORIAL":
+                self.draw_tutorial()
+
+            case "PLAYING" | "GO_TO_SANCT":
+                pyxel.clip(0, UI_HEIGHT, WINDOW_W, WINDOW_H - UI_HEIGHT)
+                pyxel.camera(ox, oy)
+                self.draw_playing()
+                pyxel.camera(0, 0)
+                pyxel.clip()
+                self.draw_ui()
+
+                match self.time_up_zombified:
+                    case True:
+                        s1 = "TIME UP!"
+                        s2 = "GAME OVER"
+                        pyxel.text(center_text_x(s1), WINDOW_H // 2 - 8, s1, 8)
+                        pyxel.text(center_text_x(s2), WINDOW_H // 2 + 8, s2, 7)
+
+            case "ENDING":
+                pyxel.camera(0, 0)
+                self.draw_ending_scene()
+
+            case "CREDITS_ROLL":
+                pyxel.cls(0)
+                pyxel.camera(0, 0)
+                self.draw_credits_roll()
 
         self.fade.draw()
 
@@ -764,8 +869,9 @@ class GameApp:
             pyxel.text(center_text_x("DEMOCRACY OF THE DEAD"), WINDOW_H // 2 - 10, "DEMOCRACY OF THE DEAD", 8)
 
         bt = "- PRESS ENTER / GAMEPAD A/START -"
-        if pyxel.frame_count % 30 < 15:
-            pyxel.text(center_text_x(bt), WINDOW_H - 24, bt, 7)
+        match pyxel.frame_count % 30:
+            case f if f < 15:
+                pyxel.text(center_text_x(bt), WINDOW_H - 24, bt, 7)
 
         c1 = "(C) Y.K/MIRAI WORK"
         c2 = "Game Assembly by (C) M.T"
@@ -789,8 +895,9 @@ class GameApp:
             pyxel.text(20, y + 8, body, 7)
 
         begin_text = "- PRESS ENTER / GAMEPAD A/START TO BEGIN -"
-        if pyxel.frame_count % 30 < 15:
-            pyxel.text(center_text_x(begin_text), WINDOW_H - 15, begin_text, 13)
+        match pyxel.frame_count % 30:
+            case f if f < 15:
+                pyxel.text(center_text_x(begin_text), WINDOW_H - 15, begin_text, 13)
 
     def draw_playing(self):
         sanctuary_x = WINDOW_W - SANCTUARY_W
@@ -805,15 +912,19 @@ class GameApp:
         for e in entities:
             e.draw()
 
-        if self.state == "GO_TO_SANCT":
-            s = "GO TO SANCTUARY!"
-            pyxel.text(center_text_x(s), WINDOW_H - 14, s, 2)
+        match self.state:
+            case "GO_TO_SANCT":
+                s = "GO TO SANCTUARY!"
+                pyxel.text(center_text_x(s), WINDOW_H - 14, s, 2)
 
     def draw_ui(self):
         pyxel.rect(0, 0, WINDOW_W, UI_HEIGHT, 0)
-        stage_text = f"Stage: {self.stage}/{MAX_STAGE_PLAY}"
-        if self.stage == MAX_STAGE_PLAY + 1:
-            stage_text = "Stage: FINAL"
+        
+        match self.stage:
+            case s if s == MAX_STAGE_PLAY + 1:
+                stage_text = "Stage: FINAL"
+            case _:
+                stage_text = f"Stage: {self.stage}/{MAX_STAGE_PLAY}"
 
         pyxel.text(4, 4, stage_text, 7)
         captured_count = len(self.captured_zombies)
@@ -823,7 +934,11 @@ class GameApp:
         time_left = max(0.0, self.stage_time_limit - elapsed)
         time_text = f"Time: {time_left:.1f}s"
         t_x = WINDOW_W - len(time_text) * 4 - 4
-        color = 8 if time_left < 10 or self.time_up_zombified else 7
+        
+        match (time_left < 10, self.time_up_zombified):
+            case (False, False): color = 7
+            case _: color = 8
+            
         pyxel.text(t_x, 8, time_text, color)
 
     def draw_ending_scene(self):
@@ -831,100 +946,103 @@ class GameApp:
         pyxel.cls(0)
         pyxel.rect(WINDOW_W - SANCTUARY_W + ox, 0 + oy, SANCTUARY_W, WINDOW_H, 10)
 
-        if self.ending_timer < TRANSFORM_DURATION and self.ending_timer % 3 == 0:
-            pyxel.rect(WINDOW_W - SANCTUARY_W + ox, 0 + oy, SANCTUARY_W, WINDOW_H, random.choice([8, 0, 3]))
+        match (self.ending_timer < TRANSFORM_DURATION, self.ending_timer % 3 == 0):
+            case (True, True):
+                pyxel.rect(WINDOW_W - SANCTUARY_W + ox, 0 + oy, SANCTUARY_W, WINDOW_H, random.choice([8, 0, 3]))
 
         for p in self.players:
             pyxel.camera(ox, oy)
             p.draw()
         pyxel.camera(0, 0)
 
-        if self.ending_timer < TRANSFORM_DURATION:
-            s = "THE SANCTUARY IS COMPROMISING..."
-            pyxel.text(center_text_x(s) + ox, 10 + oy, s, 8)
-            s2 = "IT HURTS... IT HURTS..."
-            pyxel.text(center_text_x(s2) + ox, 20 + oy, s2, 7)
-        else:
-            s = "THE SANCTUARY WAS COMPROMISED."
-            pyxel.text(center_text_x(s) + ox, 10 + oy, s, 8)
-            clear1 = "CLEAR!"
-            clear2 = "CONGRATULATIONS!!"
+        match self.ending_timer:
+            case t if t < TRANSFORM_DURATION:
+                s = "THE SANCTUARY IS COMPROMISING..."
+                pyxel.text(center_text_x(s) + ox, 10 + oy, s, 8)
+                s2 = "IT HURTS... IT HURTS..."
+                pyxel.text(center_text_x(s2) + ox, 20 + oy, s2, 7)
+            case _:
+                s = "THE SANCTUARY WAS COMPROMISED."
+                pyxel.text(center_text_x(s) + ox, 10 + oy, s, 8)
+                clear1 = "CLEAR!"
+                clear2 = "CONGRATULATIONS!!"
 
-            # 光る色
-            clear_color1 = 10 if pyxel.frame_count % 20 < 10 else 7
-            clear_color2 = 7 if pyxel.frame_count % 20 < 10 else 10
+                match pyxel.frame_count % 20:
+                    case f if f < 10:
+                        clear_color1 = 10
+                        clear_color2 = 7
+                    case _:
+                        clear_color1 = 7
+                        clear_color2 = 10
 
-            # CLEAR!
-            cx1 = center_text_x(clear1)
-            cy1 = WINDOW_H // 2 - 8
+                cx1 = center_text_x(clear1)
+                cy1 = WINDOW_H // 2 - 8
+                pyxel.text(cx1 - 1, cy1, clear1, 0)
+                pyxel.text(cx1 + 1, cy1, clear1, 0)
+                pyxel.text(cx1, cy1 - 1, clear1, 0)
+                pyxel.text(cx1, cy1 + 1, clear1, 0)
+                pyxel.text(cx1, cy1, clear1, clear_color1)
 
-            pyxel.text(cx1 - 1, cy1, clear1, 0)
-            pyxel.text(cx1 + 1, cy1, clear1, 0)
-            pyxel.text(cx1, cy1 - 1, clear1, 0)
-            pyxel.text(cx1, cy1 + 1, clear1, 0)
-            pyxel.text(cx1, cy1, clear1, clear_color1)
-
-            # CONGRATULATIONS!!
-            cx2 = center_text_x(clear2)
-            cy2 = WINDOW_H // 2 + 8
-
-            pyxel.text(cx2 - 1, cy2, clear2, 0)
-            pyxel.text(cx2 + 1, cy2, clear2, 0)
-            pyxel.text(cx2, cy2 - 1, clear2, 0)
-            pyxel.text(cx2, cy2 + 1, clear2, 0)
-            pyxel.text(cx2, cy2, clear2, clear_color2)
+                cx2 = center_text_x(clear2)
+                cy2 = WINDOW_H // 2 + 8
+                pyxel.text(cx2 - 1, cy2, clear2, 0)
+                pyxel.text(cx2 + 1, cy2, clear2, 0)
+                pyxel.text(cx2, cy2 - 1, clear2, 0)
+                pyxel.text(cx2, cy2 + 1, clear2, 0)
+                pyxel.text(cx2, cy2, clear2, clear_color2)
 
     def draw_credits_roll(self):
         curr_y = self.credits_y
 
         for height, text, color in CREDITS_CONTENT:
-            if curr_y > -height and curr_y < WINDOW_H:
-                pyxel.text(center_text_x(text), int(curr_y), text, color)
+            match curr_y:
+                case y if y > -height and y < WINDOW_H:
+                    pyxel.text(center_text_x(text), int(curr_y), text, color)
             curr_y += height
 
-        if self.show_final_score:
-            pyxel.blt(0, 0, 1, 0, 0, WINDOW_W, WINDOW_H)
-            # 点滅色
-            blink1 = 10 if pyxel.frame_count % 30 < 15 else 8
-            blink2 = 7 if pyxel.frame_count % 30 < 15 else 13
+        match self.show_final_score:
+            case True:
+                pyxel.blt(0, 0, 1, 0, 0, WINDOW_W, WINDOW_H)
+                
+                match pyxel.frame_count % 30:
+                    case f if f < 15:
+                        blink1 = 10
+                        blink2 = 7
+                    case _:
+                        blink1 = 8
+                        blink2 = 13
 
-            bonus = "BONUS!"
-            tarot = "TAROT CARD APPEARS!!"
+                bonus = "BONUS!"
+                tarot = "TAROT CARD APPEARS!!"
 
-            # BONUS!
-            bx = center_text_x(bonus)
-            by = WINDOW_H // 2 - 20
+                bx = center_text_x(bonus)
+                by = WINDOW_H // 2 - 20
+                pyxel.text(bx - 1, by, bonus, 0)
+                pyxel.text(bx + 1, by, bonus, 0)
+                pyxel.text(bx, by - 1, bonus, 0)
+                pyxel.text(bx, by + 1, bonus, 0)
+                pyxel.text(bx, by, bonus, blink1)
+                
+                for _ in range(8):
+                    px = bx + random.randint(-30, 30)
+                    py = by + random.randint(-10, 10)
+                    pyxel.pset(px, py, random.choice([7, 10, 13]))
 
-            pyxel.text(bx - 1, by, bonus, 0)
-            pyxel.text(bx + 1, by, bonus, 0)
-            pyxel.text(bx, by - 1, bonus, 0)
-            pyxel.text(bx, by + 1, bonus, 0)
-            pyxel.text(bx, by, bonus, blink1)
-            # キラキラ
-            for _ in range(8):
-                px = bx + random.randint(-30, 30)
-                py = by + random.randint(-10, 10)
-                pyxel.pset(px, py, random.choice([7, 10, 13]))
+                tx = center_text_x(tarot)
+                ty = WINDOW_H // 2 - 8
+                pyxel.text(tx - 1, ty, tarot, 0)
+                pyxel.text(tx + 1, ty, tarot, 0)
+                pyxel.text(tx, ty - 1, tarot, 0)
+                pyxel.text(tx, ty + 1, tarot, 0)
+                pyxel.text(tx, ty, tarot, blink2)
 
-            # TAROT CARD APPEARS!!
-            tx = center_text_x(tarot)
-            ty = WINDOW_H // 2 - 8
-
-            pyxel.text(tx - 1, ty, tarot, 0)
-            pyxel.text(tx + 1, ty, tarot, 0)
-            pyxel.text(tx, ty - 1, tarot, 0)
-            pyxel.text(tx, ty + 1, tarot, 0)
-            pyxel.text(tx, ty, tarot, blink2)
-
-            # プレイ時間
-            s_time = f"TOTAL TIME: {self.total_clear_time:.2f}s"
-
-            pyxel.text(
-                center_text_x(s_time),
-                WINDOW_H // 2 + 20,
-                s_time,
-                10
-            )
+                s_time = f"TOTAL TIME: {self.total_clear_time:.2f}s"
+                pyxel.text(
+                    center_text_x(s_time),
+                    WINDOW_H // 2 + 20,
+                    s_time,
+                    10
+                )
 
 app = GameApp()
 
