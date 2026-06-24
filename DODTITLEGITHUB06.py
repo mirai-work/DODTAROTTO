@@ -638,10 +638,15 @@ class GameApp:
             case "SENTAKUTAP":
                 match self.video_timer:
                     case 0:
-                        self.selected_movie = random.choices(
-                            ["rea1gumono", "rea2seigi", "rea3kenjya"],
-                            weights=[80, 15, 5]
-                        )[0]
+                        # 確率に基づいた動画の選択 case使用
+                        rand_val = random.random()
+                        match rand_val:
+                            case v if v < 0.80:
+                                self.selected_movie = "rea1gumono"  # 80%
+                            case v if v < 0.95:
+                                self.selected_movie = "rea2seigi"   # 15%
+                            case _:
+                                self.selected_movie = "rea3kenjya"  # 5%
 
                         try:
                             import js
