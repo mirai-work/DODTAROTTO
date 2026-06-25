@@ -67,9 +67,9 @@ CREDITS_CONTENT = [
     (12, "Team T.d", 7),
     (12, "M. T", 7),
     (8, "", 0),
-    (16, "THANK YOU FOR PLAYING!", 13),
+    (16, "THANK YOU FOR PLAYING!", 12),
     (8, "---", 7),
-    (12, "Presented by MIRAI WORK", 13),
+    (12, "Presented by MIRAI WORK", 9),
     (8, "---", 7),
     (12, "SEE YOU AGAIN!", 8),
     (WINDOW_H, "", 0)
